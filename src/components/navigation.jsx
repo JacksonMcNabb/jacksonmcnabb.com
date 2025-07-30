@@ -18,15 +18,69 @@ export default class Navbar extends Component {
     /* Manual Scrollspy Component
     "top" component is now ignored*/
 
-    var currentIndex = this.state.currentHeading;
-    var lastWindowHeight = 0;
-    var orderedSectionNames = [
+    // Cache it
+    const orderedSectionNames = [
       "top buffer",
       "about",
       "experience",
       "research",
       "skills",
     ];
+    let sectionOffsets = [];
+
+    const calculateSectionOffsets = () => {
+      sectionOffsets = [];
+      let offset = 0;
+      for (let i = 0; i < orderedSectionNames.length; i++) {
+        const el = document.getElementById(orderedSectionNames[i]);
+        if (el) {
+          sectionOffsets.push(offset);
+          offset += el.clientHeight;
+        } else {
+          sectionOffsets.push(offset);
+        }
+      }
+    };
+
+    calculateSectionOffsets();
+    window.addEventListener("resize", calculateSectionOffsets);
+
+    // Using requestAnimationFrame
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const scrollY = window.scrollY;
+          const offset = 40;
+          let currentIndex = 1;
+          for (let i = 1; i < sectionOffsets.length; i++) {
+            if (scrollY >= sectionOffsets[i] - offset) {
+              currentIndex = i;
+            } else {
+              break;
+            }
+          }
+          const footer = document.getElementById("footer");
+          if (
+            footer &&
+            footer.getBoundingClientRect().top >= 0 &&
+            footer.getBoundingClientRect().top <= window.innerHeight
+          ) {
+            currentIndex = orderedSectionNames.length - 1;
+          }
+          const newHeading = orderedSectionNames[currentIndex];
+          if (newHeading !== this.state.currentHeading) {
+            this.setState({ currentHeading: newHeading });
+          }
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+
+    handleScroll();
 
     document.getElementById("darkModeButton").addEventListener("click", () => {
       var isLightMode = !this.state.isLightMode;
@@ -67,43 +121,6 @@ export default class Navbar extends Component {
         document.documentElement.style.setProperty("--nav", themeDark.nav);
       }
     });
-
-    var changeHeading = () => {
-      var currentWindowHeight = window.scrollY;
-      if (currentWindowHeight !== lastWindowHeight) {
-        lastWindowHeight = currentWindowHeight;
-        var clientHeights = [0];
-        /*Adds consecective heights in easy in clientHeights*/
-        for (var i = 1; i < orderedSectionNames.length; i++) {
-          clientHeights[i] =
-            document.getElementById(orderedSectionNames[i]).clientHeight +
-            clientHeights[i - 1];
-        }
-        currentIndex = 1;
-        const offset = 40;
-        while (1) {
-          if (currentWindowHeight < clientHeights[currentIndex] - offset) {
-            break;
-          }
-          currentIndex++;
-        }
-        // Last case, where the skills section is too small for the scrollspy
-        const top = document.getElementById("footer").getBoundingClientRect()
-          .top;
-        if (top >= 0 && top <= window.innerHeight) {
-          currentIndex = orderedSectionNames.length - 1;
-        }
-
-        if (orderedSectionNames[currentIndex] !== this.state.currentHeading) {
-          var currentHeading = orderedSectionNames[currentIndex];
-          this.setState({ currentHeading });
-        }
-      }
-      //recurisively calls function every second to update heading depending on scrolling location
-
-      setTimeout(changeHeading, 350);
-    };
-    changeHeading();
   }
   render() {
     return (
